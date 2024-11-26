@@ -2,6 +2,8 @@
 
 Welcome to the **Encrypted Communication App**, where messages are safe, secure, and fun to send! This project demonstrates secure communication between a client and a server using **socket programming** and two encryption methods like **AES** and **RSA**. Whether you're encrypting like a pro or just sending plain text, this app has your back. 🚀
 This was a homework in the ISS course
+there is two version of the program , one for client only communication where the Client send the message and the server recieve it , and the other the server will be able to respond to the Client 
+choose wich one will suit your need and requirment 
 
 ---
 
