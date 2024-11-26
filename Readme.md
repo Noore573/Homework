@@ -4,6 +4,7 @@ Welcome to the **Encrypted Communication App**, where messages are safe, secure,
 This was a homework in the ISS course
 there is two version of the program , one for client only communication where the Client send the message and the server recieve it , and the other the server will be able to respond to the Client 
 choose wich one will suit your need and requirment 
+The app was done by me and my partner Hanaa 
 
 ---
 
