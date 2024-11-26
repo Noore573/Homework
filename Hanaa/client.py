@@ -1,4 +1,4 @@
-# Client Code
+
 import socket
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -6,11 +6,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
 import os
+from colorama import *
 
-PASSWORD = "your_secret_password"  
-# SALT = b'fixed_salt_value_16'  
-SALT = os.urandom(16)  # Generate a random salt
-
+PASSWORD = "issproject"  
+SALT = b'fixed_salt_value_16'  
 
 kdf = PBKDF2HMAC(
     algorithm=hashes.SHA256(),
@@ -44,7 +43,6 @@ def symmetric_decrypt_message(encrypted_message, key):
     decrypted_message = decryptor.update(encrypted_data) + decryptor.finalize()
     return decrypted_message.decode('utf-8', errors='replace')
 
-
 def asymmetric_encrypt_message(message, public_key):
     encrypted_message = public_key.encrypt(
         message.encode('utf-8'),
@@ -69,14 +67,13 @@ def asymmetric_decrypt_message(encrypted_message, private_key):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # ip_address='192.168.43.97'
-    ip_address='127.0.0.1'
-    port_number=5002
-    client_socket.connect((ip_address, port_number))  
+    ip_address="127.0.0.1"
+    port=5002
+    client_socket.connect((ip_address, port))  
     print("Connected to the server.")
 
     encryption_type = client_socket.recv(4096).decode('utf-8').strip().lower()
-    client_socket.send(SALT)
+
     if encryption_type == 'asymmetric':
         server_public_key_bytes = client_socket.recv(4096)
         server_public_key = serialization.load_pem_public_key(server_public_key_bytes, backend=default_backend())
@@ -89,6 +86,11 @@ def start_client():
 
     while True:
         message = input("Client: ")
+        if message.lower() == 'exit':
+            print("Connection closed by client.")
+            client_socket.send(b'exit')
+            break
+
         if encryption_type == 'symmetric':
             encrypted_message = symmetric_encrypt_message(message, symmetric_key)
             print(f"Encrypted message (symmetric): {encrypted_message}")  
@@ -102,16 +104,13 @@ def start_client():
             break
 
         client_socket.send(encrypted_message)
-        if message.lower() == 'exit':
-            print("Connection closed by client.")
-            break
-        SALT = client_socket.recv(16)
-        encrypted_data = client_socket.recv(4096)
-        print(f"Received encrypted data: {encrypted_data}")  
 
-        if not encrypted_data:
-            print("Server disconnected.")
+        encrypted_data = client_socket.recv(4096)
+        if not encrypted_data or encrypted_data == b'exit':
+            print("Connection closed by server.")
             break
+
+        print(f"Received encrypted data: {encrypted_data}")  
 
         if encryption_type == 'symmetric':
             try:
@@ -121,7 +120,6 @@ def start_client():
                 print("Failed to decrypt message.")
         elif encryption_type == 'asymmetric':
             try:
-                
                 data = asymmetric_decrypt_message(encrypted_data, client_private_key)
                 print(f"Decrypted message from server: {data}")
             except ValueError:
@@ -133,4 +131,5 @@ def start_client():
     client_socket.close()
 
 if __name__ == "__main__":
+    init()
     start_client()

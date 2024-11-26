@@ -1,5 +1,4 @@
 
-
 import socket
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -8,10 +7,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
 import os
 
-PASSWORD = "your_secret_password" 
+PASSWORD = "issproject" 
 SALT = b'fixed_salt_value_16' 
-# SALT = os.urandom(16)  # Generate a random salt
-
 
 kdf = PBKDF2HMAC(
     algorithm=hashes.SHA256(),
@@ -70,21 +67,17 @@ def asymmetric_decrypt_message(encrypted_message, private_key):
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # ip_address='192.168.43.97'
-    ip_address='127.0.0.1'
-    port_number=5002
-    server_socket.bind((ip_address, port_number))  
+    Ip_address='127.0.0.1'
+    port_number='5001'
+    server_socket.bind((Ip_address, port_number))  
     server_socket.listen(1)
     print("Server is listening for connections...")
 
     connection, address = server_socket.accept()
     print(f"Connected to {address}")
 
-
     encryption_type = input("Choose encryption type (none/symmetric/asymmetric): ").strip().lower()
     connection.send(encryption_type.encode('utf-8'))  
-    connection.send(SALT)
-    SALT = connection.recv(16)
 
     if encryption_type == 'asymmetric':
         public_key_bytes = public_key.public_bytes(
@@ -99,18 +92,23 @@ def start_server():
     while True:
         try:
             encrypted_data = connection.recv(4096)
-            if not encrypted_data:
+            if not encrypted_data or encrypted_data == b'exit':
+                print("Connection closed by client.")
                 break
 
-            print(f"Received encrypted data: {encrypted_data}")  
+            if encrypted_data != b'exit' and encryption_type != 'none':
+                print(f"Received encrypted data: {encrypted_data}")  
 
             if encryption_type == 'symmetric':
-                try:
-                    data = symmetric_decrypt_message(encrypted_data, symmetric_key)
-                    print(f"Decrypted message from client: {data}")
-                except ValueError:
-                    print("Failed to decrypt message.")
-                    continue
+                if encrypted_data == b'exit':
+                    data = 'exit'
+                else:
+                    try:
+                        data = symmetric_decrypt_message(encrypted_data, symmetric_key)
+                        print(f"Decrypted message from client: {data}")
+                    except ValueError:
+                        print("Failed to decrypt message.")
+                        continue
             elif encryption_type == 'asymmetric':
                 try:
                     data = asymmetric_decrypt_message(encrypted_data, private_key)
@@ -130,6 +128,11 @@ def start_server():
                 break
 
             message = input("Server: ")
+            if message.lower() == 'exit':
+                print("Connection closed by server.")
+                connection.send(b'exit')  
+                break
+
             if encryption_type == 'symmetric':
                 encrypted_message = symmetric_encrypt_message(message, symmetric_key)
                 print(f"Encrypted message (symmetric): {encrypted_message}") 
@@ -140,10 +143,6 @@ def start_server():
                 encrypted_message = message.encode('utf-8')
             connection.send(encrypted_message)
 
-            if message.lower() == 'exit':
-                print("Connection closed by server.")
-                connection.send(b'exit')  
-                break
         except ConnectionAbortedError:
             print("Connection was aborted.")
             break
@@ -153,7 +152,6 @@ def start_server():
 
     connection.close()
     server_socket.close()
-    
 
 if __name__ == "__main__":
     start_server()
